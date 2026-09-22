@@ -1,15 +1,16 @@
 class SoundManager {
     constructor() {
         this.sounds = {
-            hit: new Audio('assets/hit.mp3'),
-            parry: new Audio('assets/parry.mp3'),
-            dash: new Audio('assets/dash.mp3'),
-            grab: new Audio('assets/grab.mp3'),
-            wallBounce: new Audio('assets/wallbounce.mp3'),
-            blackFlash: new Audio('assets/blackflash.mp3'),
-            heavyCharge: new Audio('assets/heavy_charge.mp3'),
-            domain: new Audio('assets/domain.mp3'),
-            glassShatter: new Audio('assets/shatter.mp3')
+            hit: new Audio('sounds/punch.mp3'),
+            parry: new Audio('sounds/block.mp3'),
+            dash: new Audio('sounds/dash.mp3'),
+            domain: new Audio('sounds/domain.mp3'),
+            tib: new Audio('sounds/tib.mp3'),
+            frame: new Audio('sounds/frame.mp3'),
+            selfFrame: new Audio('sounds/selfFrame.mp3'),
+            blackFlash: new Audio('sounds/blackFlash.mp3'),
+            heavyBlackFlash: new Audio('sounds/heavyBlackFlash.mp3'),
+            wallBounce: new Audio('sounds/block.mp3') // Fallback con block si no hay wallbounce
         };
         Object.values(this.sounds).forEach(audio => {
             audio.volume = 0.45;
@@ -22,18 +23,24 @@ class SoundManager {
         if (sound) {
             sound.currentTime = 0;
             sound.play().catch(() => {});
+        } else {
+            console.warn(`[SoundManager] No existe el sonido: ${name}`);
         }
     }
 
+    // Mapeo directo a la lógica de combate de tu juego
     playHit() { this.play('hit'); }
     playParry() { this.play('parry'); }
     playDash() { this.play('dash'); }
-    playGrab() { this.play('grab'); }
+    playGrab() { this.play('hit'); } // Reutiliza punch o ajusta si quieres
     playWallBounce() { this.play('wallBounce'); }
     playBlackFlash() { this.play('blackFlash'); }
-    playHeavyCharge() { this.play('heavyCharge'); }
+    playHeavyCharge() { this.play('tib'); }
     playDomain() { this.play('domain'); }
-    playGlassShatter() { this.play('glassShatter'); }
+    playGlassShatter() { this.play('frame'); }
+    playTib() { this.play('tib'); }
+    playSelfFrame() { this.play('selfFrame'); }
+    playHeavyBlackFlash() { this.play('heavyBlackFlash'); }
 }
 const sfx = new SoundManager();
 
@@ -334,9 +341,9 @@ class Player {
                 let dmg = Math.round(75 * this.sparkMultiplier);
                 target.hp = Math.max(isDummyMode && !target.isP1 ? 10 : 0, target.hp - dmg);
                 target.applyStun(45);
-                sfx.playBlackFlash();
+                sfx.playHeavyBlackFlash();
                 spawnBlackFlashShockwave(target.x, target.y - 20);
-                spawnFloatingText("BLACK FLASH!", target.x, target.y - 75, '#ff0844');
+                spawnFloatingText("HEAVY BLACK FLASH!", target.x, target.y - 75, '#ff0844');
                 for(let i=0; i<12; i++) spawnBlackFlashLightning(target.x, target.y - 20);
                 cameraShake = 45; hitstopFrames = 6;
                 shockingEffects.push({ target: target, ticksLeft: 3, timer: 60, dmgPerTick: 5 });
@@ -382,11 +389,13 @@ class Player {
         if (!this.consumeCE(30)) return;
         this.specialCooldown = 180;
         
+        sfx.playTib();
+
         if (!this.isP1 && this.domainTimer > 0) {
             let damage = Math.round(35 * this.sparkMultiplier);
             target.hp = Math.max(isDummyMode ? 10 : 0, target.hp - damage);
             target.applyStun(35);
-            sfx.playHit(); spawnGlassShatter(target.x, target.y - 30);
+            spawnGlassShatter(target.x, target.y - 30);
             cameraShake = 25; hitstopFrames = 4; checkWin(); return;
         }
 
@@ -409,7 +418,7 @@ class Player {
             let damage = Math.round((target.maxHp * 0.95) * this.sparkMultiplier);
             target.hp = Math.max(isDummyMode && !target.isP1 ? 10 : 5, target.hp - damage);
             target.applyStun(35);
-            blackFlashTimer = 22; sfx.playBlackFlash();
+            blackFlashTimer = 22; sfx.playHeavyBlackFlash();
             spawnBlackFlashShockwave(zone.x, zone.y);
             spawnSpatialCrack(zone.x, zone.y, '#ff0844', true, this);
             spawnFloatingText("FINISHER BLACK FLASH!", zone.x, zone.y - 50, '#ff0844');
@@ -442,10 +451,11 @@ class Player {
         if (isProjectionDomain || (distToTarget < 90 && target.hp > 0)) {
             target.applyFramed(105);
             frameCages.push({ x: target.x, y: target.y - 30, target: target, life: 105, color: '#00f2fe' });
-            sfx.playGlassShatter(); spawnGlassShatter(target.x, target.y - 30);
+            sfx.playFrame(); spawnGlassShatter(target.x, target.y - 30);
         } else {
             this.applyFramed(105);
             frameCages.push({ x: this.x, y: this.y - 30, target: this, life: 105, color: '#ff0844' });
+            sfx.playSelfFrame();
         }
         cameraShake = 15; hitstopFrames = 3;
     }
@@ -571,7 +581,7 @@ function updateShockingEffects() {
             effect.ticksLeft--;
             effect.target.hp = Math.max(isDummyMode && !effect.target.isP1 ? 10 : 0, effect.target.hp - effect.dmgPerTick);
             spawnElectricSparks(effect.target.x, effect.target.y - 30, '#ff0844');
-            sfx.play('hit');
+            sfx.playHit();
             checkWin();
         }
     });
