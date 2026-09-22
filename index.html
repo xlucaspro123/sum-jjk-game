@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>THIN ICE BREAKER // JJK Pro Edition (CE + Combos + WallBounce + Juice)</title>
+    <title>THIN ICE BREAKER // JJK Pro Edition (CE + Combos + WallBounce + SFX Real)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -131,7 +131,7 @@
             <div class="info"><span id="p2-cd">TIB/FR/DE</span><span style="color:#ffb199;">P2: ROJO (BOT/FLECHAS)</span></div>
         </div>
     </div>
-    <div id="bot-indicator">CE + COMBOS + WALLBOUNCE + JUICE ACTIVO | [B=Bot, N=Dummy, D-Up=OK]</div>
+    <div id="bot-indicator">CE + COMBOS + WALLBOUNCE + SFX REAL ACTIVO | [B=Bot, N=Dummy, D-Up=OK]</div>
 
     <canvas id="gameCanvas" width="1000" height="560"></canvas>
     <div id="controls-hint">P1: WASD+1(Jab), Hold1(Heavy), 2=TIB, 3=Frame, 4=Domain, E=Parry, Shift=Dash, F=Grab | Xbox: Stick+A(Tap/Hold), X/Y/B, LB/RB, LT=Grab</div>
@@ -144,10 +144,12 @@
     </div>
 
 <script>
+// ==========================================
+// SOUND MANAGER (CONECTADO A ARCHIVOS REALES .MP3)
+// ==========================================
 class SoundManager {
     constructor() {
-        this.masterVolume = 0.5;
-        // Mapeo exacto de tus archivos en la carpeta sounds/
+        this.masterVolume = 0.6;
         this.files = {
             hit: 'sounds/punch.mp3',
             parry: 'sounds/selfFrame.mp3',
@@ -172,27 +174,32 @@ class SoundManager {
         }
     }
 
-    play(key, customVol = 1.0) {
-        const audio = this.cache[key];
-        if (audio) {
-            // Clonar o reiniciar para permitir spam rápido de golpes
-            const clone = audio.cloneNode();
-            clone.volume = Math.min(1.0, Math.max(0, this.masterVolume * customVol));
-            clone.play().catch(() => {
-                // Silencia error de autoplay si el usuario no ha interactuado aún
-            });
+    init() {
+        // Activación trivial por si el browser requiere interacción de usuario
+        const testAudio = this.cache['dash'];
+        if (testAudio && testAudio.paused === false) {
+            testAudio.pause();
+            testAudio.currentTime = 0;
         }
     }
 
-    // Compatibilidad con los nombres viejos por si acaso
-    playHit() { this.play('hit', 0.8); }
-    playParry() { this.play('parry', 0.9); }
-    playDash() { this.play('dash', 0.5); }
-    playGrab() { this.play('grab', 0.8); }
+    play(key, customVol = 1.0) {
+        const audio = this.cache[key];
+        if (audio) {
+            const clone = audio.cloneNode();
+            clone.volume = Math.min(1.0, Math.max(0, this.masterVolume * customVol));
+            clone.play().catch(() => {});
+        }
+    }
+
+    playHit() { this.play('hit', 0.85); }
+    playParry() { this.play('parry', 0.95); }
+    playDash() { this.play('dash', 0.55); }
+    playGrab() { this.play('grab', 0.85); }
     playWallBounce() { this.play('wallBounce', 0.9); }
     playBlackFlash() { this.play('blackFlash', 1.0); }
-    playHeavyCharge() { this.play('heavyCharge', 0.6); }
-    playDomain() { this.play('domain', 0.9); }
+    playHeavyCharge() { this.play('heavyCharge', 0.7); }
+    playDomain() { this.play('domain', 0.95); }
     playGlassShatter() { this.play('glassShatter', 0.85); }
 }
 const sfx = new SoundManager();
@@ -732,7 +739,7 @@ function updateShockingEffects() {
             effect.ticksLeft--;
             effect.target.hp = Math.max(isDummyMode && !effect.target.isP1 ? 10 : 0, effect.target.hp - effect.dmgPerTick);
             spawnElectricSparks(effect.target.x, effect.target.y - 30, '#ff0844');
-            sfx.playTone('sine', 150, 80, 0.08, 0.2);
+            sfx.play('hit', 0.25);
             checkWin();
         }
     });
@@ -1000,7 +1007,6 @@ function loop() {
         ctx.font = 'bold 12px system-ui';
         ctx.fillStyle = t.color;
         ctx.shadowColor = t.color; ctx.shadowBlur = 8;
-        ctx.globalAngle = 1;
         ctx.globalAlpha = Math.min(1, t.life / 20);
         ctx.textAlign = 'center';
         ctx.fillText(t.text, t.x, t.y);
