@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JJK PVPS GAME: By Lucasta</title>
+    <title>JJK PvP's Simulator (can be played with 2 players)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -131,7 +131,7 @@
             <div class="info"><span id="p2-cd">TIB/FR/DE</span><span style="color:#ffb199;">P2: ROJO (BOT/FLECHAS)</span></div>
         </div>
     </div>
-    <div id="bot-indicator">CE + COMBOS + WALLBOUNCE + SFX REAL ACTIVO | [B=Bot, N=Dummy, D-Up=OK]</div>
+    <div id="bot-indicator">CE REGENERACIÓN FIX + WALLBOUNCE + SFX REAL | [B=Bot, N=Dummy]</div>
 
     <canvas id="gameCanvas" width="1000" height="560"></canvas>
     <div id="controls-hint">P1: WASD+1(Jab), Hold1(Heavy), 2=TIB, 3=Frame, 4=Domain, E=Parry, Shift=Dash, F=Grab | Xbox: Stick+A(Tap/Hold), X/Y/B, LB/RB, LT=Grab</div>
@@ -145,7 +145,7 @@
 
 <script>
 // ==========================================
-// SOUND MANAGER (CONECTADO A ARCHIVOS REALES .MP3)
+// SOUND MANAGER (ARCHIVOS MP3)
 // ==========================================
 class SoundManager {
     constructor() {
@@ -159,7 +159,7 @@ class SoundManager {
             blackFlash: 'sounds/heavyBlackFlash.mp3',
             heavyCharge: 'sounds/blackFlash.mp3',
             domain: 'sounds/domain.mp3',
-            glassShatter: 'sounds/frame.mp3'
+            glassShatter: 'sounds/tib.mp3'
         };
         this.cache = {};
         this.preload();
@@ -175,7 +175,6 @@ class SoundManager {
     }
 
     init() {
-        // Activación trivial por si el browser requiere interacción de usuario
         const testAudio = this.cache['dash'];
         if (testAudio && testAudio.paused === false) {
             testAudio.pause();
@@ -288,6 +287,7 @@ class Player {
     update(keys, isHoldingAttack, moveVectorOverride) {
         if (this.hp <= 0 || gameOver || hitstopFrames > 0) return;
         
+        // REGENERACIÓN DE CE
         this.ce = Math.min(this.maxCe, this.ce + 0.2);
 
         if (this.specialCooldown > 0) this.specialCooldown--;
@@ -654,11 +654,18 @@ class Player {
     }
 }
 
+// ==========================================
+// LÓGICA DE IA (BOT) CON REGENERACIÓN DE CE
+// ==========================================
 function updateAI(bot, target) {
     if (bot.hp <= 0 || gameOver || isDummyMode) {
         if (isDummyMode && !bot.isP1) bot.hp = bot.maxHp;
         return;
     }
+
+    // ⚡ FIX: REGENERACIÓN DE ENERGÍA DEL BOT
+    bot.ce = Math.min(bot.maxCe, bot.ce + 0.2);
+
     if (bot.specialCooldown > 0) bot.specialCooldown--;
     if (bot.frameCooldown > 0) bot.frameCooldown--;
     if (bot.domainCooldown > 0) bot.domainCooldown--;
@@ -676,6 +683,7 @@ function updateAI(bot, target) {
     if (bot.actionTimer > 0 && bot.actionState !== 'idle') {
         bot.actionTimer--; if (bot.actionTimer === 0) bot.actionState = 'idle'; return;
     }
+
     let dist = Math.hypot(target.x - bot.x, target.y - bot.y);
     let dx = target.x - bot.x, dy = target.y - bot.y;
     let angle = Math.atan2(dy, dx);
@@ -829,7 +837,7 @@ function pollGamepadP1() {
 
     let dz = 0.25;
     let mx = gp.axes[0] || 0;
-    let my = gp.axes || 0;
+    let my = gp.axes[1] || 0;
     if (Math.abs(mx) < dz) mx = 0;
     if (Math.abs(my) < dz) my = 0;
     if (gp.buttons[14]?.pressed) mx = -1;
